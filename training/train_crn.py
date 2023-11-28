@@ -71,9 +71,6 @@ def train_crn(splits_folder_path: str, epochs: int, output_dir: str, verbose: bo
     continuous_outcomes_path = os.path.join(splits_folder_path, 'train_continuous_outcomes_split_{}.csv'.format(split))
     gsu_dataset = load_gsu_dataset(data_path, continuous_outcomes_path)
 
-    # TODO: remove this line
-    gsu_dataset = gsu_dataset[:2]
-
     model = plugin_loader.get("treatments.temporal.regression.crn_regressor", epochs=params['epochs'],
                               encoder_rnn_type=params['encoder_rnn_type'],
                               encoder_hidden_size=params['encoder_hidden_size'],

@@ -1,0 +1,7 @@
+jupyter
+numpy
+pandas
+protobuf
+temporai @ git+https://github.com/vanderschaarlab/temporai@daa4af2e3943e5639098a4459464012c007245a3
+tqdm
+
