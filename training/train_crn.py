@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime
 
+import tempor
 from tempor import plugin_loader
 from tempor.utils.serialization import save_to_file
 
@@ -97,7 +98,7 @@ def train_crn(splits_folder_path: str, epochs: int, output_dir: str,
                                   )
 
         # Train the model:
-        model.fit(gsu_dataset)
+        model.fit(gsu_dataset, device=tempor.models.constants.DEVICE)
 
         save_to_file(os.path.join(output_dir, f'crn_model_{timestamp}_split_{split}.cpkl'), model)
 

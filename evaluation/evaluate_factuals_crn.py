@@ -1,4 +1,5 @@
 import pandas as pd
+import tempor
 from tempor.data.dataset import TemporalTreatmentEffectsDataset
 from tempor.methods.treatments.temporal.regression.plugin_crn_regressor import CRNTreatmentsRegressor
 from tqdm import tqdm
@@ -40,7 +41,8 @@ def evaluate_factuals_crn(dataset:TemporalTreatmentEffectsDataset, model: CRNTre
                                for ttt in dataset.predictive.treatments]
 
         predicted_factuals_at_ts = model.predict_counterfactuals(dataset, horizons=horizon,
-                                                                 treatment_scenarios=treatment_scenarios)
+                                                                 treatment_scenarios=treatment_scenarios,
+                                                                 device=tempor.models.constants.DEVICE)
         predicted_factuals_df[ts] = flatten(flatten([pfts[0].to_numpy() for pfts in predicted_factuals_at_ts]))
 
         temp_df = dataset.predictive.targets.dataframe().reset_index()
