@@ -121,7 +121,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     gsu_dataset = load_gsu_dataset(args.features_path, args.continuous_outcomes_path)
-    gsu_dataset = gsu_dataset[0:2]
 
     model = load_from_file(args.model_path)
 
