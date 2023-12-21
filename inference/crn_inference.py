@@ -10,7 +10,6 @@ import numpy as np
 from tempor.data.dataset import TemporalTreatmentEffectsDataset
 
 
-
 def crn_dataset_inference(dataset:TemporalTreatmentEffectsDataset, model: CRNTreatmentsRegressor,
                           n_timesteps_to_predict:int=1, n_treatment_strategies:int = 8,
                           update_treatment_data:bool=False, verbose:bool=False):
