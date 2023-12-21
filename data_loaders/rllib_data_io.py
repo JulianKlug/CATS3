@@ -1,11 +1,12 @@
 from ray.rllib.models.preprocessors import get_preprocessor
 from ray.rllib.offline import JsonWriter
-from ray.rllib.evaluation import SampleBatchBuilder
 from gym.spaces import Box, Discrete, Dict
 import numpy as np
 import pandas as pd
 import os
 from tqdm import tqdm
+
+from data_loaders.rllib_SampleBatchBuilder import SampleBatchBuilder
 from utils import ensure_dir
 
 
@@ -14,7 +15,7 @@ def rllib_gsu_dataset_creation(gsu_features_path: str, gsu_final_outcomes_path: 
                                target_outcome:str = '3M mRS 0-2',
                                target_treatment:str = 'anti_hypertensive_strategy',
                                truncate_at_penultimate_timestep:bool = True,
-                               save_indices:bool = False,
+                               save_index_columns:bool = False,
                                verbose:bool = True
                             ) -> None:
     """
@@ -28,7 +29,7 @@ def rllib_gsu_dataset_creation(gsu_features_path: str, gsu_final_outcomes_path: 
         target_treatment: The target treatment variable to use for actions.
         truncate_at_penultimate_timestep: Whether to truncate the data at the penultimate timestep. This is necessary
                                             because the last timestep does not have a next timestep
-        save_indices: Whether to save the column indices in the dataset.
+        save_index_columns: Whether to save the column indices in the dataset.
         verbose: Whether to display progress information.
 
     Returns:
@@ -57,16 +58,25 @@ def rllib_gsu_dataset_creation(gsu_features_path: str, gsu_final_outcomes_path: 
         ['case_admission_id', 'relative_sample_date_hourly_cat', target_treatment]]
     pivoted_features_df.drop(columns=[target_treatment], inplace=True)
 
+    all_cids = pivoted_features_df.case_admission_id.unique()
+
     # Initialize RLLib objects
     batch_builder = SampleBatchBuilder()
     writer = JsonWriter(output_path)
 
-    if save_indices:
-        # TODO: implement saving indices (case_admission_id, relative_sample_date_hourly_cat)
+    if save_index_columns:
+        # saving indices (case_admission_id, relative_sample_date_hourly_cat)
         # this needs a definition of a vaster observation space
         # Needed for inference with pre-defined treatment policies (as cid and ts are needed to get the correct treatment)
+        # As preprocesor does not accept Text spaces, we need to convert them to two integers
+        cid0 = pivoted_features_df[pivoted_features_df.columns[0]].apply(lambda x: x.split('_')[0]).astype(int)
+        cid1 = pivoted_features_df[pivoted_features_df.columns[0]].apply(lambda x: x.split('_')[1]).astype(int)
+        features_with_index_columns_df = pd.concat([cid0, cid1, pivoted_features_df[pivoted_features_df.columns[1:]]],
+                                                   axis=1).astype(np.float64)
+        features_with_index_columns_df.columns = ['cid0', 'cid1'] + list(pivoted_features_df.columns[1:])
+        pivoted_features_df = features_with_index_columns_df
+
         column_start_index = 0
-        raise NotImplementedError
     else:
         column_start_index = 2
 
@@ -74,9 +84,9 @@ def rllib_gsu_dataset_creation(gsu_features_path: str, gsu_final_outcomes_path: 
     n_features = len(pivoted_features_df.columns) - column_start_index
 
     # Initialize preprocessor (needed for compatibility with RLLib algorithms)
-    obs_space = Box(low=pivoted_features_df[pivoted_features_df.columns[2:]].min().min(),
-                    high=pivoted_features_df[pivoted_features_df.columns[2:]].max().max(), shape=(n_features,),
-                    dtype=np.float32)
+    obs_space = Box(low=pivoted_features_df[pivoted_features_df.columns[column_start_index:]].min().min(),
+                    high=pivoted_features_df[pivoted_features_df.columns[column_start_index:]].max().max(), shape=(n_features,),
+                    dtype=np.float64)
     prep = get_preprocessor(obs_space)(obs_space)
 
     if verbose:
@@ -84,8 +94,13 @@ def rllib_gsu_dataset_creation(gsu_features_path: str, gsu_final_outcomes_path: 
 
     # Iterate over episodes and timesteps
     for eps_id in tqdm(range(n_episodes)):
-        cid = pivoted_features_df.case_admission_id.unique()[eps_id]
-        cid_data_df = pivoted_features_df[pivoted_features_df.case_admission_id == cid]
+        cid = all_cids[eps_id]
+        if not save_index_columns:
+            cid_data_df = pivoted_features_df[pivoted_features_df.case_admission_id == cid]
+        else:
+            cid_data_df = pivoted_features_df[
+                (pivoted_features_df.cid0.astype(int) == int(cid.split('_')[0]))
+                & (pivoted_features_df.cid1.astype(int) == int(cid.split('_')[1]))]
 
         # Truncating at penultimate timestep to avoid missing data for last timestep (new obs must be defined for ts + 1)
         if truncate_at_penultimate_timestep:
@@ -93,7 +108,7 @@ def rllib_gsu_dataset_creation(gsu_features_path: str, gsu_final_outcomes_path: 
         else:
             last_timestep = cid_data_df.relative_sample_date_hourly_cat.max()
 
-        for ts in range(last_timestep + 1):
+        for ts in range(int(last_timestep + 1)):
             obs = cid_data_df[cid_data_df.relative_sample_date_hourly_cat == ts]
             obs = obs[obs.columns[column_start_index:]].values[0]
             obs = prep.transform(obs)
@@ -165,7 +180,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--target_outcome', type=str, default='3M mRS 0-2', help='Target outcome variable to use for rewards.')
     parser.add_argument('-r', '--target_treatment', type=str, default='anti_hypertensive_strategy', help='Target treatment variable to use for actions.')
     parser.add_argument('-u', '--do_not_truncate_at_penultimate_timestep', action='store_false', help='Whether to truncate the data at the penultimate timestep. This is necessary because the last timestep does not have a next timestep.')
-    parser.add_argument('-s', '--save_indices', type=bool, default=False, help='Whether to save the column indices in the dataset.')
+    parser.add_argument('-s', '--save_index_columns', default=False, action='store_true', help='Whether to save the column indices in the dataset.')
     parser.add_argument('-v', '--verbose', type=bool, default=True, help='Whether to display progress information.')
     args = parser.parse_args()
 
@@ -175,5 +190,5 @@ if __name__ == '__main__':
                                target_outcome=args.target_outcome,
                                target_treatment=args.target_treatment,
                                truncate_at_penultimate_timestep=args.do_not_truncate_at_penultimate_timestep,
-                               save_indices=args.save_indices,
+                               save_index_columns=args.save_index_columns,
                                verbose=args.verbose)

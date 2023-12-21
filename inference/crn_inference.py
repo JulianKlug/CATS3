@@ -10,7 +10,6 @@ import numpy as np
 from tempor.data.dataset import TemporalTreatmentEffectsDataset
 
 
-
 def crn_dataset_inference(dataset:TemporalTreatmentEffectsDataset, model: CRNTreatmentsRegressor,
                           n_timesteps_to_predict:int=1, n_treatment_strategies:int = 8,
                           update_treatment_data:bool=False, verbose:bool=False):
@@ -121,7 +120,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     gsu_dataset = load_gsu_dataset(args.features_path, args.continuous_outcomes_path)
-    gsu_dataset = gsu_dataset[0:2]
 
     model = load_from_file(args.model_path)
 
