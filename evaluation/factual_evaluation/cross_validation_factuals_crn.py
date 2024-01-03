@@ -1,10 +1,8 @@
 import os
-
 import pandas as pd
-from tempor.utils.serialization import load_from_file
-
 from data_loaders.temporAI_dataloader import load_gsu_dataset
-from evaluation.evaluate_factuals_crn import evaluate_factuals_crn
+from data_loaders.temporAI_model_loader import load_model
+from evaluation.factual_evaluation.evaluate_factuals_crn import evaluate_factuals_crn
 from utils import ensure_dir
 
 
@@ -42,7 +40,7 @@ def cross_validation_factuals_crn(model_folder:str, splits_folder:str, output_di
         split = model_file.split('_')[-1].split('.')[0]
 
         # load model
-        model = load_from_file(model_path)
+        model = load_model(model_path)
 
         # load validation data
         val_data_path = os.path.join(splits_folder, f'val_features_split_{split}.csv')

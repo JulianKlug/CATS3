@@ -3,7 +3,7 @@ import tempor
 from tempor.data.dataset import TemporalTreatmentEffectsDataset
 from tempor.methods.treatments.temporal.regression.plugin_crn_regressor import CRNTreatmentsRegressor
 from tqdm import tqdm
-from evaluation.evaluation_functions import root_mean_square_error
+from evaluation.factual_evaluation.evaluation_functions import  root_mean_square_error
 from utils import flatten
 
 
