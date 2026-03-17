@@ -14,6 +14,8 @@
 - in a given sequence -> group by outcome
 - look at subgroups with a given outcome and a given treatment sequence
 
+- plot: x: timestep / y: patient / color: treatment strategy (plus add outcome at the end)
+
 #### Bayesian treatment given initial state
 
 - group treatment as sequence
